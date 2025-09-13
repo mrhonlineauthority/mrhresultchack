@@ -1,212 +1,186 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Student Result Viewer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #fff0f5;
-      padding: 30px;
-    }
-    .form-box, .result-card {
-      width: 400px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
-    }
-    h2 {
-      color: #e91e63;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    button {
-      background: #e91e63;
-      color: white;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    table, th, td {
-      border: 1px solid #aaa;
-    }
-    th, td {
-      padding: 8px;
-      text-align: center;
-    }
-    .info {
-      text-align: left;
-      margin-top: 15px;
-    }
-    .info strong {
-      color: #e91e63;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.R.H Authority Result System</title>
+<style>
+body { font-family: Times New Roman; background: #f5f5f5; margin:0; padding:20px;}
+.container { max-width:800px; margin:auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+h1 { text-align:center; color:#d63384; }
+.form-group { margin-bottom:15px; }
+label { display:block; margin-bottom:5px; }
+input[type="text"], input[type="number"] { width:100%; padding:8px; box-sizing:border-box; }
+button { background:#d63384; color:white; padding:10px 15px; border:none; cursor:pointer; border-radius:5px; }
+button:hover { background:#a52a6a; }
+#resultCard { margin-top:20px; display:none; border:2px solid #d63384; padding:20px; border-radius:8px; background:#fff0f5; }
+#resultCard h2, #resultCard h3 { text-align:center; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+table, th, td { border:1px solid #d63384; }
+th, td { padding:8px; text-align:center; }
+.print-btn { margin-top:15px; display:block; width:100%; text-align:center; }
+@media print {
+  body * { visibility:hidden; }
+  #resultCard, #resultCard * { visibility:visible; }
+  #resultCard { position:fixed; top:0; left:0; width:100%; height:100%; margin:0; padding:20px; box-sizing:border-box; border:none; border-radius:0; background:#fff; }
+  table, th, td { border:1px solid #000; font-size:12pt; }
+  h2,h3,p { page-break-inside:avoid; }
+}
+</style>
 </head>
 <body>
+<div class="container">
+<h1>M.R.H Authority</h1>
+<p id="timerNotice" style="text-align:center; font-weight:bold; color:#d63384;"></p>
 
-  <div class="form-box" id="formBox">
-    <h2>Check Result</h2>
-    <input type="text" id="roll" maxlength="6" placeholder="Enter 6-digit Roll No">
-    <input type="text" id="reg" maxlength="10" placeholder="Enter 10-digit Registration No">
-
-    <!-- 🔢 Math challenge -->
-    <div id="mathQuestionContainer" style="display:none;">
-      <label id="mathQuestion" style="font-weight:bold;"></label>
-      <input type="number" id="mathAnswer" placeholder="Enter answer to continue">
-    </div>
-
-    <button onclick="generateMath()">Next</button>
+<div class="form" id="entryForm">
+  <div class="form-group">
+    <label for="roll">Roll No:</label>
+    <input type="text" id="roll">
   </div>
-
-  <div class="result-card" id="resultCard" style="display:none;">
-    <h2>Student Result Card</h2>
-    <div class="info" id="studentInfo"></div>
-    <table id="resultTable">
-      <thead>
-        <tr>
-          <th>Subject</th>
-          <th>Marks</th>
-          <th>Grade</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button onclick="window.print()">Print Result</button>
+  <div class="form-group">
+    <label for="reg">Registration No:</label>
+    <input type="text" id="reg">
   </div>
+  <div class="form-group">
+    <label for="captcha">Solve: <span id="captchaQuestion"></span></label>
+    <input type="text" id="captcha">
+  </div>
+  <button id="checkBtn" onclick="checkResult()" disabled>Check Result</button>
+</div>
 
-  <script>
-    // ⏰ টাইম সেট করো এখানে
-    const resultReleaseTime = new Date("2025-09-14T14:00:00"); 
+<div id="resultCard">
+<h2>M.R.H Authority</h2>
+<p><strong>Name:</strong> <span id="rName"></span></p>
+<p><strong>Roll:</strong> <span id="rRoll"></span></p>
+<p><strong>Board:</strong> <span id="rBoard"></span></p>
+<p><strong>Group:</strong> <span id="rGroup"></span></p>
+<p><strong>Date Of Birth:</strong> <span id="rDOB"></span></p>
+<p><strong>Exam And Year:</strong> <span id="rExam"></span></p>
+<p><strong>Result:</strong> <span id="rResult"></span></p>
+<p><strong>GPA:</strong> <span id="rGPA"></span></p>
 
-    const students = {
-      "990011_4019283756": {
-        name: "Md Riyad Hassan",
-        roll: "990011",
-        reg: "4019283756",
-        section: "C",
-        board: "Dhaka",
-        religion: "Islam",
-        exam: "BCB 2025",
-        result: [
-          ["Bangla", 80, "A"],
-          ["English", 70, "A-"],
-          ["Mathematics", 90, "A+"],
-          ["Religion", 80, "A"],
-          ["Science", 90, "A+"],
-          ["ICT", 85, "A"]
-        ]
-      },
-      "990012_4086172953": {
-        name: "Md Onik Mia",
-        roll: "990012",
-        reg: "4086172953",
-        section: "A",
-        board: "Dhaka",
-        religion: "Islam",
-        exam: "BCB 2025",
-        result: [
-          ["Bangla", 75, "B"],
-          ["English", 78, "A"],
-          ["Mathematics", 67, "C"],
-          ["Religion", 70, "B"],
-          ["Science", 75, "B"],
-          ["ICT", 80, "A"]
-        ]
-      }
-      // অন্য ছাত্রদের তথ্য চাইলে এখানে যুক্ত করতে পারো
-    };
+<h3>Grade Sheet</h3>
+<table>
+<thead>
+<tr><th>Code</th><th>Subject</th><th>Grade</th></tr>
+</thead>
+<tbody id="gradeTable"></tbody>
+</table>
 
-    let correctAnswer = 0;
+<div class="print-btn">
+<button onclick="window.print()">Print Result</button>
+</div>
+</div>
+</div>
 
-    function generateMath() {
-      const roll = document.getElementById("roll").value.trim();
-      const reg = document.getElementById("reg").value.trim();
+<script>
+// একাধিক ছাত্রের ডেটা, 6টি বিষয়
+const students = [
+  {
+    roll: "990011",
+    reg: "1234567890",
+    name: "Md. Riad",
+    board: "Dhaka",
+    group: "Science",
+    dob: "2005-05-22",
+    exam: "SSC 2025",
+    result: "Pass",
+    gpa: "5.00",
+    grades: [
+      {code: "101", subject: "Bangla", grade: "A+"},
+      {code: "102", subject: "English", grade: "A+"},
+      {code: "103", subject: "Mathematics", grade: "A+"},
+      {code: "104", subject: "Physics", grade: "A+"},
+      {code: "105", subject: "Chemistry", grade: "A+"},
+      {code: "106", subject: "Biology", grade: "A+"}
+    ]
+  },
+  {
+    roll: "990012",
+    reg: "0000000000",
+    name: "Shaheen",
+    board: "Dhaka",
+    group: "Commerce",
+    dob: "2005-07-18",
+    exam: "SSC 2025",
+    result: "Pass",
+    gpa: "4.75",
+    grades: [
+      {code: "101", subject: "Bangla", grade: "A"},
+      {code: "102", subject: "English", grade: "A"},
+      {code: "103", subject: "Accounting", grade: "A+"},
+      {code: "104", subject: "Economics", grade: "A"},
+      {code: "105", subject: "Business Studies", grade: "A+"},
+      {code: "106", subject: "ICT", grade: "A"}
+    ]
+  }
+];
 
-      if (!roll || !reg) {
-        alert("Please enter both Roll and Registration No.");
-        return;
-      }
+// CAPTCHA
+let num1 = Math.floor(Math.random()*10);
+let num2 = Math.floor(Math.random()*10);
+document.getElementById('captchaQuestion').innerText = `${num1} + ${num2} = ?`;
 
-      const num1 = Math.floor(Math.random() * 50) + 1;
-      const num2 = Math.floor(Math.random() * 50) + 1;
-      correctAnswer = num1 + num2;
+// RESULT PUBLISH DATE & TIME
+let publishDateTime = "2025-09-13 02:00:00pm"; // YYYY-MM-DD hh:mm:ssam/pm
 
-      document.getElementById("mathQuestion").textContent = `Solve: ${num1} + ${num2} = ?`;
-      document.getElementById("mathQuestionContainer").style.display = "block";
+function parsePublishDateTime(str){
+  let [datePart, timePart] = str.split(" ");
+  let [year, month, day] = datePart.split("-").map(Number);
+  let [h,m,s] = timePart.slice(0,8).split(":").map(Number);
+  let meridian = timePart.slice(8).toLowerCase();
+  if(meridian==="pm" && h<12) h+=12;
+  if(meridian==="am" && h===12) h=0;
+  return new Date(year, month-1, day, h, m, s);
+}
 
-      const button = document.querySelector("button");
-      button.textContent = "Submit";
-      button.onclick = checkResult;
-    }
+function checkTimer(){
+  const now = new Date();
+  const target = parsePublishDateTime(publishDateTime);
+  let diff = target-now;
+  if(diff<=0){
+    document.getElementById("timerNotice").innerText="Result is now available!";
+    document.getElementById("checkBtn").disabled=false;
+  } else {
+    const days=Math.floor(diff/1000/3600/24);
+    const hrs=Math.floor((diff/1000/3600)%24);
+    const mins=Math.floor((diff/1000/60)%60);
+    const secs=Math.floor(diff/1000%60);
+    document.getElementById("timerNotice").innerText=`Result will be published in ${days}d ${hrs}h ${mins}m ${secs}s`;
+    document.getElementById("checkBtn").disabled=true;
+  }
+}
 
-    function checkResult() {
-      const roll = document.getElementById("roll").value.trim();
-      const reg = document.getElementById("reg").value.trim();
-      const key = `${roll}_${reg}`;
-      const userAnswer = parseInt(document.getElementById("mathAnswer").value);
+setInterval(checkTimer,1000);
 
-      if (new Date() < resultReleaseTime) {
-        alert("⏳ Result will be available after " + resultReleaseTime.toLocaleString('en-GB'));
-        return;
-      }
-
-      if (userAnswer !== correctAnswer) {
-        alert("❌ Wrong answer. Please try again.");
-        generateMath(); // নতুন প্রশ্ন
-        return;
-      }
-
-      if (students[key]) {
-        document.getElementById("formBox").style.display = "none";
-        document.getElementById("resultCard").style.display = "block";
-
-        const student = students[key];
-        document.getElementById("studentInfo").innerHTML = `
-          <p><strong>Name:</strong> ${student.name}</p>
-          <p><strong>Roll:</strong> ${student.roll}</p>
-          <p><strong>Registration No:</strong> ${student.reg}</p>
-          <p><strong>Section:</strong> ${student.section}</p>
-          <p><strong>Board:</strong> ${student.board}</p>
-          <p><strong>Religion:</strong> ${student.religion}</p>
-          <p><strong>Exam:</strong> ${student.exam}</p>
-        `;
-
-        const tbody = document.querySelector("#resultTable tbody");
-        tbody.innerHTML = '';
-        student.result.forEach(row => {
-          const tr = document.createElement("tr");
-          row.forEach(cell => {
-            const td = document.createElement("td");
-            td.textContent = cell;
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-
-      } else {
-        alert("❌ Result not found! Please check Roll and Registration No.");
-      }
-    }
-  </script>
-
+// CHECK RESULT FUNCTION
+function checkResult(){
+  const roll=document.getElementById('roll').value.trim();
+  const reg=document.getElementById('reg').value.trim();
+  const captchaAnswer=document.getElementById('captcha').value.trim();
+  if(captchaAnswer!=(num1+num2)){
+    alert("CAPTCHA ভুল হয়েছে।");
+    return;
+  }
+  const student=students.find(s=>s.roll===roll && s.reg===reg);
+  if(!student){ alert("Student data found নয়।"); return; }
+  document.getElementById('entryForm').style.display="none";
+  document.getElementById('rName').innerText=student.name;
+  document.getElementById('rRoll').innerText=student.roll;
+  document.getElementById('rBoard').innerText=student.board;
+  document.getElementById('rGroup').innerText=student.group;
+  document.getElementById('rDOB').innerText=student.dob;
+  document.getElementById('rExam').innerText=student.exam;
+  document.getElementById('rResult').innerText=student.result;
+  document.getElementById('rGPA').innerText=student.gpa;
+  const gradeTable=document.getElementById('gradeTable');
+  gradeTable.innerHTML="";
+  student.grades.forEach(g=>{
+    gradeTable.innerHTML+=`<tr><td>${g.code}</td><td>${g.subject}</td><td>${g.grade}</td></tr>`;
+  });
+  document.getElementById('resultCard').style.display="block";
+}
+</script>
 </body>
-</html>
+  </html>
