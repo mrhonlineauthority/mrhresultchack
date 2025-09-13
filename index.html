@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Result Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff0f5;
+      padding: 30px;
+    }
+    .form-box, .result-card {
+      width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+    h2 {
+      color: #e91e63;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background: #e91e63;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table, th, td {
+      border: 1px solid #aaa;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    .info {
+      text-align: left;
+      margin-top: 15px;
+    }
+    .info strong {
+      color: #e91e63;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-box" id="formBox">
+    <h2>Check Result</h2>
+    <input type="text" id="roll" maxlength="6" placeholder="Enter 6-digit Roll No">
+    <input type="text" id="reg" maxlength="10" placeholder="Enter 10-digit Registration No">
+
+    <!-- 🔢 Math challenge -->
+    <div id="mathQuestionContainer" style="display:none;">
+      <label id="mathQuestion" style="font-weight:bold;"></label>
+      <input type="number" id="mathAnswer" placeholder="Enter answer to continue">
+    </div>
+
+    <button onclick="generateMath()">Next</button>
+  </div>
+
+  <div class="result-card" id="resultCard" style="display:none;">
+    <h2>Student Result Card</h2>
+    <div class="info" id="studentInfo"></div>
+    <table id="resultTable">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Marks</th>
+          <th>Grade</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button onclick="window.print()">Print Result</button>
+  </div>
+
+  <script>
+    // ⏰ টাইম সেট করো এখানে
+    const resultReleaseTime = new Date("2025-09-14T14:00:00"); 
+
+    const students = {
+      "990011_4019283756": {
+        name: "Md Riyad Hassan",
+        roll: "990011",
+        reg: "4019283756",
+        section: "C",
+        board: "Dhaka",
+        religion: "Islam",
+        exam: "BCB 2025",
+        result: [
+          ["Bangla", 80, "A"],
+          ["English", 70, "A-"],
+          ["Mathematics", 90, "A+"],
+          ["Religion", 80, "A"],
+          ["Science", 90, "A+"],
+          ["ICT", 85, "A"]
+        ]
+      },
+      "990012_4086172953": {
+        name: "Md Onik Mia",
+        roll: "990012",
+        reg: "4086172953",
+        section: "A",
+        board: "Dhaka",
+        religion: "Islam",
+        exam: "BCB 2025",
+        result: [
+          ["Bangla", 75, "B"],
+          ["English", 78, "A"],
+          ["Mathematics", 67, "C"],
+          ["Religion", 70, "B"],
+          ["Science", 75, "B"],
+          ["ICT", 80, "A"]
+        ]
+      }
+      // অন্য ছাত্রদের তথ্য চাইলে এখানে যুক্ত করতে পারো
+    };
+
+    let correctAnswer = 0;
+
+    function generateMath() {
+      const roll = document.getElementById("roll").value.trim();
+      const reg = document.getElementById("reg").value.trim();
+
+      if (!roll || !reg) {
+        alert("Please enter both Roll and Registration No.");
+        return;
+      }
+
+      const num1 = Math.floor(Math.random() * 50) + 1;
+      const num2 = Math.floor(Math.random() * 50) + 1;
+      correctAnswer = num1 + num2;
+
+      document.getElementById("mathQuestion").textContent = `Solve: ${num1} + ${num2} = ?`;
+      document.getElementById("mathQuestionContainer").style.display = "block";
+
+      const button = document.querySelector("button");
+      button.textContent = "Submit";
+      button.onclick = checkResult;
+    }
+
+    function checkResult() {
+      const roll = document.getElementById("roll").value.trim();
+      const reg = document.getElementById("reg").value.trim();
+      const key = `${roll}_${reg}`;
+      const userAnswer = parseInt(document.getElementById("mathAnswer").value);
+
+      if (new Date() < resultReleaseTime) {
+        alert("⏳ Result will be available after " + resultReleaseTime.toLocaleString('en-GB'));
+        return;
+      }
+
+      if (userAnswer !== correctAnswer) {
+        alert("❌ Wrong answer. Please try again.");
+        generateMath(); // নতুন প্রশ্ন
+        return;
+      }
+
+      if (students[key]) {
+        document.getElementById("formBox").style.display = "none";
+        document.getElementById("resultCard").style.display = "block";
+
+        const student = students[key];
+        document.getElementById("studentInfo").innerHTML = `
+          <p><strong>Name:</strong> ${student.name}</p>
+          <p><strong>Roll:</strong> ${student.roll}</p>
+          <p><strong>Registration No:</strong> ${student.reg}</p>
+          <p><strong>Section:</strong> ${student.section}</p>
+          <p><strong>Board:</strong> ${student.board}</p>
+          <p><strong>Religion:</strong> ${student.religion}</p>
+          <p><strong>Exam:</strong> ${student.exam}</p>
+        `;
+
+        const tbody = document.querySelector("#resultTable tbody");
+        tbody.innerHTML = '';
+        student.result.forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        alert("❌ Result not found! Please check Roll and Registration No.");
+      }
+    }
+  </script>
+
+</body>
+</html>
