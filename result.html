@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.R.H Authority Result System</title>
+<style>
+body { font-family: Times New Roman; background: #f5f5f5; margin:0; padding:20px;}
+.container { max-width:800px; margin:auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+h1 { text-align:center; color:#d63384; }
+.form-group { margin-bottom:15px; }
+label { display:block; margin-bottom:5px; }
+input[type="text"], input[type="number"] { width:100%; padding:8px; box-sizing:border-box; }
+button { background:#d63384; color:white; padding:10px 15px; border:none; cursor:pointer; border-radius:5px; }
+button:hover { background:#a52a6a; }
+#resultCard { margin-top:20px; display:none; border:2px solid #d63384; padding:20px; border-radius:8px; background:#fff0f5; }
+#resultCard h2, #resultCard h3 { text-align:center; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+table, th, td { border:1px solid #d63384; }
+th, td { padding:8px; text-align:center; }
+.print-btn { margin-top:15px; display:block; width:100%; text-align:center; }
+@media print {
+  body * { visibility:hidden; }
+  #resultCard, #resultCard * { visibility:visible; }
+  #resultCard { position:fixed; top:0; left:0; width:100%; height:100%; margin:0; padding:20px; box-sizing:border-box; border:none; border-radius:0; background:#fff; }
+  table, th, td { border:1px solid #000; font-size:12pt; }
+  h2,h3,p { page-break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>M.R.H Authority</h1>
+<p id="timerNotice" style="text-align:center; font-weight:bold; color:#d63384;"></p>
+
+<div class="form" id="entryForm">
+  <div class="form-group">
+    <label for="roll">Roll No:</label>
+    <input type="text" id="roll">
+  </div>
+  <div class="form-group">
+    <label for="reg">Registration No:</label>
+    <input type="text" id="reg">
+  </div>
+  <div class="form-group">
+    <label for="captcha">Solve: <span id="captchaQuestion"></span></label>
+    <input type="text" id="captcha">
+  </div>
+  <button id="checkBtn" onclick="checkResult()" disabled>Check Result</button>
+</div>
+
+<div id="resultCard">
+<h2>M.R.H Authority</h2>
+<p><strong>Name:</strong> <span id="rName"></span></p>
+<p><strong>Roll:</strong> <span id="rRoll"></span></p>
+<p><strong>Board:</strong> <span id="rBoard"></span></p>
+<p><strong>Group:</strong> <span id="rGroup"></span></p>
+<p><strong>Date Of Birth:</strong> <span id="rDOB"></span></p>
+<p><strong>Exam And Year:</strong> <span id="rExam"></span></p>
+<p><strong>Result:</strong> <span id="rResult"></span></p>
+<p><strong>GPA:</strong> <span id="rGPA"></span></p>
+
+<h3>Grade Sheet</h3>
+<table>
+<thead>
+<tr><th>Code</th><th>Subject</th><th>Grade</th></tr>
+</thead>
+<tbody id="gradeTable"></tbody>
+</table>
+
+<div class="print-btn">
+<button onclick="window.print()">Print Result</button>
+</div>
+</div>
+</div>
+
+<script>
+// একাধিক ছাত্রের ডেটা, 6টি বিষয়
+const students = [
+  {
+    roll: "990011",
+    reg: "1234567890",
+    name: "Md. Riad",
+    board: "Dhaka",
+    group: "Science",
+    dob: "2005-05-22",
+    exam: "SSC 2025",
+    result: "Pass",
+    gpa: "5.00",
+    grades: [
+      {code: "101", subject: "Bangla", grade: "A+"},
+      {code: "102", subject: "English", grade: "A+"},
+      {code: "103", subject: "Mathematics", grade: "A+"},
+      {code: "104", subject: "Physics", grade: "A+"},
+      {code: "105", subject: "Chemistry", grade: "A+"},
+      {code: "106", subject: "Biology", grade: "A+"}
+    ]
+  },
+  {
+    roll: "990012",
+    reg: "0000000000",
+    name: "Sajid",
+    board: "Dhaka",
+    group: "Commerce",
+    dob: "2005-07-18",
+    exam: "SSC 2025",
+    result: "Pass",
+    gpa: "4.75",
+    grades: [
+      {code: "101", subject: "Bangla", grade: "A"},
+      {code: "102", subject: "English", grade: "A"},
+      {code: "103", subject: "Accounting", grade: "A+"},
+      {code: "104", subject: "Economics", grade: "A"},
+      {code: "105", subject: "Business Studies", grade: "A+"},
+      {code: "106", subject: "ICT", grade: "A"}
+    ]
+  }
+];
+
+// CAPTCHA
+let num1 = Math.floor(Math.random()*10);
+let num2 = Math.floor(Math.random()*10);
+document.getElementById('captchaQuestion').innerText = `${num1} + ${num2} = ?`;
+
+// RESULT PUBLISH DATE & TIME
+let publishDateTime = "2030-01-01 02:00:00pm"; // YYYY-MM-DD hh:mm:ssam/pm
+
+function parsePublishDateTime(str){
+  let [datePart, timePart] = str.split(" ");
+  let [year, month, day] = datePart.split("-").map(Number);
+  let [h,m,s] = timePart.slice(0,8).split(":").map(Number);
+  let meridian = timePart.slice(8).toLowerCase();
+  if(meridian==="pm" && h<12) h+=12;
+  if(meridian==="am" && h===12) h=0;
+  return new Date(year, month-1, day, h, m, s);
+}
+
+function checkTimer(){
+  const now = new Date();
+  const target = parsePublishDateTime(publishDateTime);
+  let diff = target-now;
+  if(diff<=0){
+    document.getElementById("timerNotice").innerText="Result is now available!";
+    document.getElementById("checkBtn").disabled=false;
+  } else {
+    const days=Math.floor(diff/1000/3600/24);
+    const hrs=Math.floor((diff/1000/3600)%24);
+    const mins=Math.floor((diff/1000/60)%60);
+    const secs=Math.floor(diff/1000%60);
+    document.getElementById("timerNotice").innerText=`Result will be published in ${days}d ${hrs}h ${mins}m ${secs}s`;
+    document.getElementById("checkBtn").disabled=true;
+  }
+}
+
+setInterval(checkTimer,1000);
+
+// CHECK RESULT FUNCTION
+function checkResult(){
+  const roll=document.getElementById('roll').value.trim();
+  const reg=document.getElementById('reg').value.trim();
+  const captchaAnswer=document.getElementById('captcha').value.trim();
+  if(captchaAnswer!=(num1+num2)){
+    alert("CAPTCHA ভুল হয়েছে।");
+    return;
+  }
+  const student=students.find(s=>s.roll===roll && s.reg===reg);
+  if(!student){ alert("Student data found নয়।"); return; }
+  document.getElementById('entryForm').style.display="none";
+  document.getElementById('rName').innerText=student.name;
+  document.getElementById('rRoll').innerText=student.roll;
+  document.getElementById('rBoard').innerText=student.board;
+  document.getElementById('rGroup').innerText=student.group;
+  document.getElementById('rDOB').innerText=student.dob;
+  document.getElementById('rExam').innerText=student.exam;
+  document.getElementById('rResult').innerText=student.result;
+  document.getElementById('rGPA').innerText=student.gpa;
+  const gradeTable=document.getElementById('gradeTable');
+  gradeTable.innerHTML="";
+  student.grades.forEach(g=>{
+    gradeTable.innerHTML+=`<tr><td>${g.code}</td><td>${g.subject}</td><td>${g.grade}</td></tr>`;
+  });
+  document.getElementById('resultCard').style.display="block";
+}
+</script>
+</body>
+  </html>
